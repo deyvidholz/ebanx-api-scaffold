@@ -1,0 +1,147 @@
+openapi: 3.0.0
+info:
+  title: Banking API
+  version: 1.0.0
+  description: Simple banking API supporting deposits, withdrawals, and transfers.
+
+paths:
+  /reset:
+    post:
+      summary: Reset all account state
+      responses:
+        '200':
+          description: State reset successfully
+
+  /balance:
+    get:
+      summary: Get account balance
+      parameters:
+        - in: query
+          name: account_id
+          required: true
+          schema:
+            type: string
+          example: '100'
+      responses:
+        '200':
+          description: Account balance
+          content:
+            application/json:
+              schema:
+                type: number
+              example: 20
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                type: integer
+                example: 0
+
+  /event:
+    post:
+      summary: Process a banking event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/DepositEvent'
+                - $ref: '#/components/schemas/WithdrawEvent'
+                - $ref: '#/components/schemas/TransferEvent'
+            examples:
+              deposit:
+                summary: Deposit into account
+                value: { type: deposit, destination: '100', amount: 10 }
+              withdraw:
+                summary: Withdraw from account
+                value: { type: withdraw, origin: '100', amount: 5 }
+              transfer:
+                summary: Transfer between accounts
+                value: { type: transfer, origin: '100', destination: '300', amount: 15 }
+      responses:
+        '201':
+          description: Event processed successfully
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/DepositResult'
+                  - $ref: '#/components/schemas/WithdrawResult'
+                  - $ref: '#/components/schemas/TransferResult'
+        '404':
+          description: Origin account not found
+          content:
+            application/json:
+              schema:
+                type: integer
+                example: 0
+
+components:
+  schemas:
+    Account:
+      type: object
+      properties:
+        id:
+          type: string
+        balance:
+          type: number
+
+    DepositEvent:
+      type: object
+      required: [type, destination, amount]
+      properties:
+        type:
+          type: string
+          enum: [deposit]
+        destination:
+          type: string
+        amount:
+          type: number
+
+    WithdrawEvent:
+      type: object
+      required: [type, origin, amount]
+      properties:
+        type:
+          type: string
+          enum: [withdraw]
+        origin:
+          type: string
+        amount:
+          type: number
+
+    TransferEvent:
+      type: object
+      required: [type, origin, destination, amount]
+      properties:
+        type:
+          type: string
+          enum: [transfer]
+        origin:
+          type: string
+        destination:
+          type: string
+        amount:
+          type: number
+
+    DepositResult:
+      type: object
+      properties:
+        destination:
+          $ref: '#/components/schemas/Account'
+
+    WithdrawResult:
+      type: object
+      properties:
+        origin:
+          $ref: '#/components/schemas/Account'
+
+    TransferResult:
+      type: object
+      properties:
+        origin:
+          $ref: '#/components/schemas/Account'
+        destination:
+          $ref: '#/components/schemas/Account'
