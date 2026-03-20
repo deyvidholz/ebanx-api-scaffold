@@ -19,6 +19,7 @@ export function createRouter(services: RouterServices): Router {
   const event = new EventController(services.eventService);
   const reset = new ResetController(services.resetService);
 
+  router.get('/health', (_req, res) => res.json({ status: 'ok' }));
   router.post('/reset', reset.reset);
   router.get('/balance', balance.getBalance);
   router.post('/event', event.handleEvent);
