@@ -1,6 +1,6 @@
 # Deployment Guide
 
-The API is deployed to a Linux server via GitHub Actions using SSH. Traefik handles HTTPS automatically via Let's Encrypt.
+The API is deployed to a Linux server via GitHub Actions using SSH. Traefik (already running on the VPS) handles HTTPS and routing via the shared `web` Docker network.
 
 Live URL: `https://ebanx-test.deyvidholz.dev`
 
@@ -10,25 +10,18 @@ Live URL: `https://ebanx-test.deyvidholz.dev`
 
 ### Server setup (one-time)
 
-1. Install Docker and Docker Compose on the server.
-
-2. Create the external Docker network that Traefik uses:
-   ```bash
-   docker network create web
-   ```
-
-3. Clone the repository to the deploy path on the server:
+1. Clone the repository to the deploy path on the server:
    ```bash
    git clone <repo-url> /path/to/deploy
    ```
 
-4. Create a `.env` file in the deploy path from the example:
+2. Create a `.env` file in the deploy path from the example:
    ```bash
    cp .env.example .env
    # then edit .env and fill in the values
    ```
 
-5. Start the stack for the first time:
+3. Start the stack for the first time:
    ```bash
    docker compose up -d
    ```
@@ -83,6 +76,6 @@ docker compose logs -f
 # API only
 docker compose logs -f api
 
-# Traefik only
-docker compose logs -f traefik
+# Traefik (shared, not managed by this stack)
+docker logs traefik
 ```
