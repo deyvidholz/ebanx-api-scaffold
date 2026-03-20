@@ -1,7 +1,59 @@
 services:
+  traefik:
+    image: traefik:v3.0
+    restart: unless-stopped
+    env_file:
+      - .env
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.le.acme.tlschallenge=true"
+      - "--certificatesresolvers.le.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.le.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - letsencrypt:/letsencrypt
+    networks:
+      - web
+
   api:
     build: .
-    ports:
-      - "8080:8080"
-    environment:
-      - PORT=8080
+    restart: unless-stopped
+    env_file:
+      - .env
+    networks:
+      - web
+      - internal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=web"
+      # HTTPS router
+      - "traefik.http.routers.ebanx-api.rule=Host(`ebanx-test.deyvidholz.dev`)"
+      - "traefik.http.routers.ebanx-api.entrypoints=websecure"
+      - "traefik.http.routers.ebanx-api.tls=true"
+      - "traefik.http.routers.ebanx-api.tls.certresolver=le"
+      - "traefik.http.services.ebanx-api.loadbalancer.server.port=8080"
+      # HTTP → HTTPS redirect
+      - "traefik.http.routers.ebanx-api-http.rule=Host(`ebanx-test.deyvidholz.dev`)"
+      - "traefik.http.routers.ebanx-api-http.entrypoints=web"
+      - "traefik.http.routers.ebanx-api-http.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  letsencrypt:
+
+networks:
+  web:
+    external: true
+  internal:
